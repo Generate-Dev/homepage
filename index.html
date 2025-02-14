@@ -45,6 +45,12 @@
             .animate-fade-in {
                 animation: fadeIn 0.5s ease-out forwards;
             }
+            #customQuestionSection {
+                transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .scale-98 {
+                transform: scale(0.98);
+            }
         </style>
 </head>
 <body class="font-montserrat">
@@ -110,8 +116,14 @@
                     </div>
                 </div>
 
+                <!-- Response Display -->
+                <div id="aiResponse" class="bg-white p-6 rounded-xl shadow-lg text-left max-w-2xl mx-auto hidden mb-8">
+                    <h3 class="font-semibold text-genfin-dark mb-2">AI Response:</h3>
+                    <p class="text-gray-600 font-source-sans" id="responseText"></p>
+                </div>
+
                 <!-- Custom Question Input (Initially Hidden) -->
-                <div id="customQuestionSection" class="hidden">
+                <div id="customQuestionSection" class="hidden transform transition-all duration-700 ease-out max-h-0 overflow-hidden opacity-0 -mt-8 scale-98">
                     <p class="text-gray-600 mb-4 font-source-sans">Now try asking your own question:</p>
                     <div class="max-w-2xl mx-auto mb-6">
                         <textarea 
@@ -127,12 +139,6 @@
                     >
                         Ask AI Assistant
                     </button>
-                </div>
-
-                <!-- Response Display -->
-                <div id="aiResponse" class="bg-white p-6 rounded-xl shadow-lg text-left max-w-2xl mx-auto hidden">
-                    <h3 class="font-semibold text-genfin-dark mb-2">AI Response:</h3>
-                    <p class="text-gray-600 font-source-sans" id="responseText"></p>
                 </div>
 
                 <!-- Email Modal -->
@@ -628,12 +634,20 @@
                 answeredQuestions++;
                 if (answeredQuestions === totalQuestions) {
                     setTimeout(() => {
-                        customQuestionSection.classList.remove('hidden');
-                        customQuestionSection.classList.add('opacity-0');
-                        setTimeout(() => {
-                            customQuestionSection.classList.remove('opacity-0');
-                        }, 50);
-                    }, 300);
+                        const customSection = document.getElementById('customQuestionSection');
+                        // First remove hidden class
+                        customSection.classList.remove('hidden');
+                        // Trigger reflow
+                        void customSection.offsetWidth;
+                        // Show the section with slide down animation
+                        requestAnimationFrame(() => {
+                            customSection.classList.remove('max-h-0', 'opacity-0', 'scale-98');
+                            customSection.classList.add('max-h-[500px]');
+                            customSection.style.opacity = '1';
+                            customSection.style.marginTop = '0';
+                            customSection.style.transform = 'scale(1)';
+                        });
+                    }, 2000); // Increased delay slightly for better timing
                 }
             }
 
