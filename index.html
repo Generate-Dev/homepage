@@ -65,18 +65,99 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-4xl mx-auto">
                 <h1 class="text-5xl md:text-6xl font-bold text-genfin-dark mb-6 leading-tight">
-                    AI-Powered Call Center Intelligence
+                    Experience AI Call Intelligence
                 </h1>
                 <p class="text-xl text-gray-600 mb-10 font-source-sans">
-                    Transform your call center with real-time insights, automated coaching, and performance analytics.
+                    Listen to a real sales call and ask our AI anything about the conversation.
                 </p>
-                <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <a href="#demo" class="bg-genfin-blue text-white px-8 py-4 rounded-lg hover:bg-blue-600 font-semibold text-lg">
-                        Request Demo
-                    </a>
-                    <a href="#features" class="bg-white text-gray-700 px-8 py-4 rounded-lg hover:bg-gray-50 font-semibold text-lg border border-gray-200">
-                        Learn More
-                    </a>
+                
+                <!-- Audio Player -->
+                <div class="mb-10">
+                    <audio id="demoAudio" class="w-full" controls>
+                        <source src="https://genfin-homepage.s3.us-east-1.amazonaws.com/2_life_insurance_demo.mp3" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+
+                <!-- Preset Questions -->
+                <div id="presetQuestions" class="mb-8">
+                    <p class="text-gray-600 mb-4 font-source-sans">Try these example questions:</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button 
+                            class="preset-question px-6 py-3 rounded-lg border-2 border-genfin-blue text-genfin-blue hover:bg-blue-50 font-medium transition-all duration-300"
+                            data-question="What is the client's monthly income?"
+                            data-answer="Based on the conversation, the client's monthly income is $900 per month."
+                        >
+                            What is the client's monthly income?
+                        </button>
+                        <button 
+                            class="preset-question px-6 py-3 rounded-lg border-2 border-genfin-blue text-genfin-blue hover:bg-blue-50 font-medium transition-all duration-300"
+                            data-question="What are the prospect's main motivations?"
+                            data-answer="The prospect's main motivation is to secure life insurance/burial coverage to ensure her children won't have to bear the financial burden of funeral expenses."
+                        >
+                            What are the prospect's main motivations?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Question Input (Initially Hidden) -->
+                <div id="customQuestionSection" class="hidden">
+                    <p class="text-gray-600 mb-4 font-source-sans">Now try asking your own question:</p>
+                    <div class="max-w-2xl mx-auto mb-6">
+                        <textarea 
+                            id="questionInput"
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-genfin-blue focus:ring-2 focus:ring-genfin-blue/20 focus:outline-none resize-none font-source-sans"
+                            rows="3"
+                            placeholder="Ask any question about the sales call..."
+                        ></textarea>
+                    </div>
+                    <button 
+                        id="askButton"
+                        class="bg-genfin-blue text-white px-8 py-4 rounded-lg hover:bg-blue-600 font-semibold text-lg mb-8"
+                    >
+                        Ask AI Assistant
+                    </button>
+                </div>
+
+                <!-- Response Display -->
+                <div id="aiResponse" class="bg-white p-6 rounded-xl shadow-lg text-left max-w-2xl mx-auto hidden">
+                    <h3 class="font-semibold text-genfin-dark mb-2">AI Response:</h3>
+                    <p class="text-gray-600 font-source-sans" id="responseText"></p>
+                </div>
+
+                <!-- Email Modal -->
+                <div id="emailModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+                    <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 transform transition-all">
+                        <h3 class="text-2xl font-bold text-genfin-dark mb-4">Get Your Answer</h3>
+                        <p class="text-gray-600 mb-6 font-source-sans">Enter your email to receive the AI analysis of your question.</p>
+                        
+                        <form id="emailForm" class="space-y-4">
+                            <div>
+                                <input 
+                                    type="email" 
+                                    id="emailInput"
+                                    placeholder="Enter your email"
+                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-genfin-blue focus:ring-2 focus:ring-genfin-blue/20 focus:outline-none font-source-sans"
+                                    required
+                                >
+                            </div>
+                            <div class="flex gap-4">
+                                <button 
+                                    type="submit"
+                                    class="flex-1 bg-genfin-blue text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-semibold transition-colors"
+                                >
+                                    Send Answer
+                                </button>
+                                <button 
+                                    type="button"
+                                    id="cancelEmail"
+                                    class="flex-1 bg-gray-100 text-gray-600 px-6 py-3 rounded-lg hover:bg-gray-200 font-semibold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -419,5 +500,202 @@
             </div>
         </div>
     </footer>
+
+    <!-- Demo Interaction Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const askButton = document.getElementById('askButton');
+            const questionInput = document.getElementById('questionInput');
+            const aiResponse = document.getElementById('aiResponse');
+            const responseText = document.getElementById('responseText');
+            const demoAudio = document.getElementById('demoAudio');
+            const presetQuestions = document.getElementById('presetQuestions');
+            const customQuestionSection = document.getElementById('customQuestionSection');
+            const emailModal = document.getElementById('emailModal');
+            const emailForm = document.getElementById('emailForm');
+            const emailInput = document.getElementById('emailInput');
+            const cancelEmail = document.getElementById('cancelEmail');
+            let answeredQuestions = 0;
+            const totalQuestions = document.querySelectorAll('.preset-question').length;
+            let pendingQuestion = '';
+            let pendingAnswer = null;
+
+            // Loading state for button
+            function setLoading(isLoading, button = askButton) {
+                button.disabled = isLoading;
+                if (button === askButton) {
+                    button.innerHTML = isLoading ? 
+                        '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Analyzing...</span>' : 
+                        'Ask AI Assistant';
+                }
+            }
+
+            // Show email modal with animation
+            function showEmailModal() {
+                emailModal.classList.remove('hidden');
+                // Trigger reflow for animation
+                emailModal.offsetHeight;
+                emailModal.querySelector('.bg-white').classList.add('scale-100', 'opacity-100');
+                emailInput.focus();
+                // Prevent body scroll
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Hide email modal with animation
+            function hideEmailModal() {
+                emailModal.querySelector('.bg-white').classList.remove('scale-100', 'opacity-100');
+                setTimeout(() => {
+                    emailModal.classList.add('hidden');
+                    emailInput.value = '';
+                    // Restore body scroll
+                    document.body.style.overflow = '';
+                }, 200);
+            }
+
+            // Check if all preset questions are answered
+            function checkAllQuestionsAnswered() {
+                answeredQuestions++;
+                if (answeredQuestions === totalQuestions) {
+                    setTimeout(() => {
+                        customQuestionSection.classList.remove('hidden');
+                        customQuestionSection.classList.add('opacity-0');
+                        setTimeout(() => {
+                            customQuestionSection.classList.remove('opacity-0');
+                        }, 50);
+                    }, 300);
+                }
+            }
+
+            // Process the AI response
+            async function processAIResponse(email = null) {
+                try {
+                    // Show loading state in response area
+                    aiResponse.classList.remove('hidden');
+                    responseText.textContent = 'Processing your request...';
+
+                    const payload = {
+                        question: pendingQuestion,
+                        audioTimestamp: demoAudio.currentTime,
+                        audioUrl: demoAudio.src
+                    };
+
+                    if (email) {
+                        payload.email = email;
+                    }
+
+                    const response = await fetch('https://api.genfin.ai/demo/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error('API request failed');
+                    
+                    const data = await response.json();
+                    responseText.textContent = data.response || 'Thank you! We will send the analysis to your email shortly.';
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseText.textContent = email ? 
+                        'Thank you! We will send the analysis to your email shortly.' :
+                        'Sorry, there was an error processing your request. Please try again.';
+                }
+            }
+
+            // Simulate AI response with delay
+            async function simulateResponse(question, predefinedAnswer = null) {
+                setLoading(true);
+                aiResponse.classList.remove('hidden');
+                responseText.textContent = 'Analyzing the call...';
+
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (predefinedAnswer) {
+                    responseText.textContent = predefinedAnswer;
+                    setLoading(false);
+                } else {
+                    pendingQuestion = question;
+                    setLoading(false);
+                    showEmailModal();
+                }
+            }
+
+            // Handle preset question clicks
+            document.querySelectorAll('.preset-question').forEach(button => {
+                button.addEventListener('click', function() {
+                    if (this.disabled) return;
+                    
+                    const question = this.dataset.question;
+                    const answer = this.dataset.answer;
+                    
+                    // Disable button and change appearance
+                    this.disabled = true;
+                    this.classList.remove('hover:bg-blue-50', 'text-genfin-blue', 'border-genfin-blue');
+                    this.classList.add('bg-gray-100', 'text-gray-500', 'border-gray-200', 'cursor-default');
+                    
+                    checkAllQuestionsAnswered();
+                    simulateResponse(question, answer);
+                });
+            });
+
+            // Handle custom questions
+            askButton.addEventListener('click', async function() {
+                const question = questionInput.value.trim();
+                if (!question) return;
+                simulateResponse(question);
+            });
+
+            // Handle email form submission
+            emailForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const submitButton = emailForm.querySelector('button[type="submit"]');
+                setLoading(true, submitButton);
+                
+                const email = emailInput.value;
+                hideEmailModal();
+                await processAIResponse(email);
+                setLoading(false, submitButton);
+            });
+
+            // Handle modal cancel button
+            cancelEmail.addEventListener('click', function() {
+                hideEmailModal();
+                responseText.textContent = 'Question cancelled';
+            });
+
+            // Close modal if clicking outside
+            emailModal.addEventListener('click', function(e) {
+                if (e.target === emailModal) {
+                    hideEmailModal();
+                    responseText.textContent = 'Question cancelled';
+                }
+            });
+
+            // Handle escape key for modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !emailModal.classList.contains('hidden')) {
+                    hideEmailModal();
+                    responseText.textContent = 'Question cancelled';
+                }
+            });
+
+            // Also allow Enter key to submit question
+            questionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    askButton.click();
+                }
+            });
+
+            // Add transition classes
+            customQuestionSection.classList.add('transition-opacity', 'duration-300');
+            emailModal.querySelector('.bg-white').classList.add('transform', 'transition-all', 'duration-200', 'scale-95', 'opacity-0');
+            document.querySelectorAll('.preset-question').forEach(button => {
+                button.classList.add('transition-all', 'duration-300');
+            });
+        });
+    </script>
 </body>
 </html>
