@@ -36,6 +36,16 @@
             }
         }
     </script>
+        <!-- Add CSS for fade-in animation -->
+        <style>
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.5s ease-out forwards;
+            }
+        </style>
 </head>
 <body class="font-montserrat">
     <!-- Navigation -->
@@ -131,15 +141,19 @@
                         <h3 class="text-2xl font-bold text-genfin-dark mb-4">Get Your Answer</h3>
                         <p class="text-gray-600 mb-6 font-source-sans">Enter your email to receive the AI analysis of your question.</p>
                         
-                        <form id="emailForm" class="space-y-4">
+                        <!-- Email Form -->
+                        <form action="https://formspree.io/f/mjkgeqlk" method="POST" id="emailForm" class="space-y-4">
                             <div>
                                 <input 
                                     type="email" 
                                     id="emailInput"
+                                    name="email"
                                     placeholder="Enter your email"
                                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-genfin-blue focus:ring-2 focus:ring-genfin-blue/20 focus:outline-none font-source-sans"
+                                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
                                     required
                                 >
+                                <p id="emailError" class="text-red-500 text-sm mt-1 hidden font-source-sans">Please enter a valid email address</p>
                             </div>
                             <div class="flex gap-4">
                                 <button 
@@ -518,7 +532,6 @@
             let answeredQuestions = 0;
             const totalQuestions = document.querySelectorAll('.preset-question').length;
             let pendingQuestion = '';
-            let pendingAnswer = null;
 
             // Loading state for button
             function setLoading(isLoading, button = askButton) {
@@ -530,14 +543,17 @@
                 }
             }
 
+            // Email validation function
+            function isValidEmail(email) {
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                return emailRegex.test(email);
+            }
+
             // Show email modal with animation
             function showEmailModal() {
                 emailModal.classList.remove('hidden');
-                // Trigger reflow for animation
-                emailModal.offsetHeight;
                 emailModal.querySelector('.bg-white').classList.add('scale-100', 'opacity-100');
                 emailInput.focus();
-                // Prevent body scroll
                 document.body.style.overflow = 'hidden';
             }
 
@@ -547,78 +563,45 @@
                 setTimeout(() => {
                     emailModal.classList.add('hidden');
                     emailInput.value = '';
-                    // Restore body scroll
                     document.body.style.overflow = '';
                 }, 200);
             }
 
-            // Check if all preset questions are answered
-            function checkAllQuestionsAnswered() {
-                answeredQuestions++;
-                if (answeredQuestions === totalQuestions) {
-                    setTimeout(() => {
-                        customQuestionSection.classList.remove('hidden');
-                        customQuestionSection.classList.add('opacity-0');
-                        setTimeout(() => {
-                            customQuestionSection.classList.remove('opacity-0');
-                        }, 50);
-                    }, 300);
-                }
-            }
-
-            // Process the AI response
-            async function processAIResponse(email = null) {
+            // Process demo response
+            async function processDemoResponse(email = null) {
                 try {
-                    // Show loading state in response area
-                    aiResponse.classList.remove('hidden');
-                    responseText.textContent = 'Processing your request...';
+                    // Show loading state
+                    const heroSection = document.querySelector('.max-w-4xl.mx-auto');
+                    heroSection.innerHTML = `
+                        <div class="animate-fade-in">
+                            <h1 class="text-5xl md:text-6xl font-bold text-genfin-dark mb-6 leading-tight">
+                                Thank You!
+                            </h1>
+                            <p class="text-xl text-gray-600 mb-10 font-source-sans">
+                                We'll send your answer to ${email}!
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                                <a 
+                                    href="#features" 
+                                    class="bg-white text-gray-700 px-8 py-4 rounded-lg hover:bg-gray-50 font-semibold text-lg border border-gray-200"
+                                >
+                                    Learn More
+                                </a>
+                            </div>
+                        </div>
+                    `;
 
-                    const payload = {
+                    // Log interaction for debugging
+                    console.log('Demo Interaction:', {
+                        email: email,
                         question: pendingQuestion,
-                        audioTimestamp: demoAudio.currentTime,
-                        audioUrl: demoAudio.src
-                    };
-
-                    if (email) {
-                        payload.email = email;
-                    }
-
-                    const response = await fetch('https://api.genfin.ai/demo/analyze', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload)
+                        audioTime: demoAudio.currentTime,
+                        timestamp: new Date().toISOString()
                     });
 
-                    if (!response.ok) throw new Error('API request failed');
-                    
-                    const data = await response.json();
-                    responseText.textContent = data.response || 'Thank you! We will send the analysis to your email shortly.';
                 } catch (error) {
                     console.error('Error:', error);
-                    responseText.textContent = email ? 
-                        'Thank you! We will send the analysis to your email shortly.' :
-                        'Sorry, there was an error processing your request. Please try again.';
-                }
-            }
-
-            // Simulate AI response with delay
-            async function simulateResponse(question, predefinedAnswer = null) {
-                setLoading(true);
-                aiResponse.classList.remove('hidden');
-                responseText.textContent = 'Analyzing the call...';
-
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                if (predefinedAnswer) {
-                    responseText.textContent = predefinedAnswer;
-                    setLoading(false);
-                } else {
-                    pendingQuestion = question;
-                    setLoading(false);
-                    showEmailModal();
+                    responseText.textContent = 'Sorry, there was an error processing your request. Please try again.';
                 }
             }
 
@@ -640,6 +623,38 @@
                 });
             });
 
+            // Check if all preset questions are answered
+            function checkAllQuestionsAnswered() {
+                answeredQuestions++;
+                if (answeredQuestions === totalQuestions) {
+                    setTimeout(() => {
+                        customQuestionSection.classList.remove('hidden');
+                        customQuestionSection.classList.add('opacity-0');
+                        setTimeout(() => {
+                            customQuestionSection.classList.remove('opacity-0');
+                        }, 50);
+                    }, 300);
+                }
+            }
+
+            // Simulate response
+            async function simulateResponse(question, predefinedAnswer = null) {
+                setLoading(true);
+                aiResponse.classList.remove('hidden');
+                responseText.textContent = 'Analyzing the call...';
+
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (predefinedAnswer) {
+                    responseText.textContent = predefinedAnswer;
+                    setLoading(false);
+                } else {
+                    pendingQuestion = question;
+                    setLoading(false);
+                    showEmailModal();
+                }
+            }
+
             // Handle custom questions
             askButton.addEventListener('click', async function() {
                 const question = questionInput.value.trim();
@@ -650,26 +665,74 @@
             // Handle email form submission
             emailForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                const email = emailInput.value.trim();
+                const question = questionInput.value.trim();
+                const emailError = document.getElementById('emailError');
+                
+                if (!isValidEmail(email)) {
+                    emailError.classList.remove('hidden');
+                    emailInput.classList.add('border-red-500');
+                    return;
+                }
+
+                emailError.classList.add('hidden');
+                emailInput.classList.remove('border-red-500');
+
                 const submitButton = emailForm.querySelector('button[type="submit"]');
                 setLoading(true, submitButton);
+
+                try {
+                    // Submit to Formspree
+                    const response = await fetch('https://formspree.io/f/mjkgeqlk', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            email: email, 
+                            question: question,
+                            audioTimestamp: demoAudio.currentTime
+                        })
+                    });
+
+                    if (response.ok) {
+                        // Hide modal first
+                        hideEmailModal();
+                        // Then update the hero section
+                        await processDemoResponse(email);
+                    } else {
+                        throw new Error('Form submission failed');
+                    }
+                } catch (error) {
+                    console.error('Error during form submission:', error);
+                    emailError.textContent = 'There was an error submitting your request. Please try again.';
+                    emailError.classList.remove('hidden');
+                } finally {
+                    setLoading(false, submitButton);
+                }
+            });
+
+            // Real-time email validation
+            emailInput.addEventListener('input', function() {
+                const email = this.value.trim();
+                const emailError = document.getElementById('emailError');
                 
-                const email = emailInput.value;
-                hideEmailModal();
-                await processAIResponse(email);
-                setLoading(false, submitButton);
+                if (email && !isValidEmail(email)) {
+                    emailError.classList.remove('hidden');
+                    this.classList.add('border-red-500');
+                } else {
+                    emailError.classList.add('hidden');
+                    this.classList.remove('border-red-500');
+                }
             });
 
             // Handle modal cancel button
-            cancelEmail.addEventListener('click', function() {
-                hideEmailModal();
-                responseText.textContent = 'Question cancelled';
-            });
+            cancelEmail.addEventListener('click', hideEmailModal);
 
             // Close modal if clicking outside
             emailModal.addEventListener('click', function(e) {
                 if (e.target === emailModal) {
                     hideEmailModal();
-                    responseText.textContent = 'Question cancelled';
                 }
             });
 
@@ -677,11 +740,10 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && !emailModal.classList.contains('hidden')) {
                     hideEmailModal();
-                    responseText.textContent = 'Question cancelled';
                 }
             });
 
-            // Also allow Enter key to submit question
+            // Handle Enter key for question submission
             questionInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
