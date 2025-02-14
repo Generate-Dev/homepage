@@ -698,6 +698,8 @@
                     if (response.ok) {
                         // Hide modal first
                         hideEmailModal();
+                        // Scroll to top smoothly
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                         // Then update the hero section
                         await processDemoResponse(email);
                     } else {
